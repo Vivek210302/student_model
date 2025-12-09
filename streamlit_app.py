@@ -43,7 +43,11 @@ st.markdown(
 # LOAD MODEL
 # -------------------------------------------------------------
 MODEL_PATH = "model/logistic_regression_model.joblib"
-model = load(MODEL_PATH)
+try:
+    model = load(MODEL_PATH)
+except FileNotFoundError:
+    st.error(f"Model file not found at {MODEL_PATH}")
+    st.stop()
 
 # -------------------------------------------------------------
 # SIDEBAR WITH STICKERS + SLIDERS
@@ -65,34 +69,60 @@ performance_index = st.sidebar.slider("📈 Performance Index", 0.0, 10.0, 5.0, 
 # FEATURE ENGINEERING
 # -------------------------------------------------------------
 def generate_features():
-    base = {
-        'Hours Studied': hours_studied,
-        'Previous Scores': previous_scores,
-        'Sleep Hours': sleep_hours,
-        'Sample Question Papers Practiced': sample_papers,
-        'Performance Index': performance_index,
-    }
-
-    engineered = {
-        'Study_Sleep_Ratio': hours_studied / sleep_hours if sleep_hours > 0 else 0,
-        'Performance_Study_Ratio': performance_index / hours_studied if hours_studied > 0 else 0,
-        'Extracurricular_Performance_Interaction': performance_index * 1,
-        'Extracurricular_PreviousScores_Interaction': previous_scores * 1,
-
-        'Hours Studied': hours_studied,
-        'Previous Scores': previous_scores,
-        'Performance Index': performance_index,
-
-        'Hours Studied^2': hours_studied ** 2,
-        'Hours Studied Previous Scores': hours_studied * previous_scores,
-        'Hours Studied Performance Index': hours_studied * performance_index,
-
-        'Previous Scores^2': previous_scores ** 2,
-        'Previous Scores Performance Index': previous_scores * performance_index,
-        'Performance Index^2': performance_index ** 2,
-    }
-
-    return pd.DataFrame([{**base, **engineered}])
+    # The model expects specific features in a specific order, including duplicates.
+    # Expected features: 
+    # ['Hours Studied Previous Scores', 'Previous Scores', 'Previous Scores', 
+    #  'Hours Studied^2', 'Previous Scores Performance Index', 
+    #  'Performance Index^2', 'Extracurricular_Performance_Interaction', 
+    #  'Extracurricular_PreviousScores_Interaction', 'Performance Index', 
+    #  'Performance Index']
+    
+    # Calculate base values
+    # Note: sleep_hours and sample_papers seem unused by the final model features based on the list
+    
+    # Construct the data dictionary with list values to preserve order when creating DataFrame
+    # but since we need duplicate columns, we'll create a DataFrame directly from a list of lists/dicts 
+    # and then manually set columns, or just use a numpy array if the model accepts it (but likely expects DF with names).
+    # Best approach for duplicate columns in pandas: create with unique names then rename, 
+    # OR create dictionary with list values and use `pd.DataFrame`, but dicts can't have duplicate keys.
+    
+    # Strategy: Create a list of values in the correct order, then creating a DF with those columns
+    
+    data_values = [
+        hours_studied * previous_scores,             # Hours Studied Previous Scores
+        previous_scores,                             # Previous Scores
+        previous_scores,                             # Previous Scores (Duplicate)
+        hours_studied ** 2,                          # Hours Studied^2
+        previous_scores * performance_index,         # Previous Scores Performance Index
+        performance_index ** 2,                      # Performance Index^2
+        performance_index * 1,                       # Extracurricular_Performance_Interaction (Assuming binary 1 for interaction base?) 
+                                                     # Wait, "Interaction" usually implies feature * feature. 
+                                                     # If it was categorical 'Extracurricular' * Performance, we don't have 'Extracurricular' input (that's target).
+                                                     # Looking at previous code: 'Extracurricular_Performance_Interaction': performance_index * 1
+                                                     # It seems it was just a copy of performance index.
+        previous_scores * 1,                         # Extracurricular_PreviousScores_Interaction
+        performance_index,                           # Performance Index
+        performance_index                            # Performance Index (Duplicate)
+    ]
+    
+    column_names = [
+        'Hours Studied Previous Scores',
+        'Previous Scores',
+        'Previous Scores',
+        'Hours Studied^2',
+        'Previous Scores Performance Index',
+        'Performance Index^2',
+        'Extracurricular_Performance_Interaction',
+        'Extracurricular_PreviousScores_Interaction',
+        'Performance Index',
+        'Performance Index'
+    ]
+    
+    # Create DataFrame
+    # We must pass data as a list of lists (rows) to allow duplicate columns if we set columns argument
+    df = pd.DataFrame([data_values], columns=column_names)
+    
+    return df
 
 input_df = generate_features()
 
@@ -115,26 +145,30 @@ st.dataframe(input_df, use_container_width=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
 if st.button("🎯 Predict Now", use_container_width=True):
-    pred = model.predict(input_df)[0]
+    try:
+        pred = model.predict(input_df)[0]
 
-    if pred == 1:
-        st.markdown(
-            """
-            <div class='main-card' style='background:#e0ffe6;'>
-                <h2 style='text-align:center;'>🎉 The student is likely to participate in <b>extracurricular activities</b>!</h2>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            """
-            <div class='main-card' style='background:#ffe6e6;'>
-                <h2 style='text-align:center;'>🚫 The student is <b>not likely</b> to participate in extracurricular activities.</h2>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        if pred == 1:
+            st.markdown(
+                """
+                <div class='main-card' style='background:#e0ffe6;'>
+                    <h2 style='text-align:center;'>🎉 The student is likely to participate in <b>extracurricular activities</b>!</h2>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                """
+                <div class='main-card' style='background:#ffe6e6;'>
+                    <h2 style='text-align:center;'>🚫 The student is <b>not likely</b> to participate in extracurricular activities.</h2>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+    except Exception as e:
+        st.error(f"Prediction Error: {e}")
+        st.warning("Ensure the inputs are valid.")
 
 # Footer
 st.markdown(
