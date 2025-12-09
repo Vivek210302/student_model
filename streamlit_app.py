@@ -77,17 +77,6 @@ def generate_features():
     #  'Extracurricular_PreviousScores_Interaction', 'Performance Index', 
     #  'Performance Index']
     
-    # Calculate base values
-    # Note: sleep_hours and sample_papers seem unused by the final model features based on the list
-    
-    # Construct the data dictionary with list values to preserve order when creating DataFrame
-    # but since we need duplicate columns, we'll create a DataFrame directly from a list of lists/dicts 
-    # and then manually set columns, or just use a numpy array if the model accepts it (but likely expects DF with names).
-    # Best approach for duplicate columns in pandas: create with unique names then rename, 
-    # OR create dictionary with list values and use `pd.DataFrame`, but dicts can't have duplicate keys.
-    
-    # Strategy: Create a list of values in the correct order, then creating a DF with those columns
-    
     data_values = [
         hours_studied * previous_scores,             # Hours Studied Previous Scores
         previous_scores,                             # Previous Scores
@@ -95,17 +84,14 @@ def generate_features():
         hours_studied ** 2,                          # Hours Studied^2
         previous_scores * performance_index,         # Previous Scores Performance Index
         performance_index ** 2,                      # Performance Index^2
-        performance_index * 1,                       # Extracurricular_Performance_Interaction (Assuming binary 1 for interaction base?) 
-                                                     # Wait, "Interaction" usually implies feature * feature. 
-                                                     # If it was categorical 'Extracurricular' * Performance, we don't have 'Extracurricular' input (that's target).
-                                                     # Looking at previous code: 'Extracurricular_Performance_Interaction': performance_index * 1
-                                                     # It seems it was just a copy of performance index.
+        performance_index * 1,                       # Extracurricular_Performance_Interaction
         previous_scores * 1,                         # Extracurricular_PreviousScores_Interaction
         performance_index,                           # Performance Index
         performance_index                            # Performance Index (Duplicate)
     ]
     
-    column_names = [
+    # Names required by the model (with duplicates)
+    model_column_names = [
         'Hours Studied Previous Scores',
         'Previous Scores',
         'Previous Scores',
@@ -118,13 +104,31 @@ def generate_features():
         'Performance Index'
     ]
     
-    # Create DataFrame
-    # We must pass data as a list of lists (rows) to allow duplicate columns if we set columns argument
-    df = pd.DataFrame([data_values], columns=column_names)
+    # Names for display (unique)
+    display_column_names = [
+        'Hours Studied Previous Scores',
+        'Previous Scores (1)',
+        'Previous Scores (2)',
+        'Hours Studied^2',
+        'Previous Scores Performance Index',
+        'Performance Index^2',
+        'Extracurricular_Performance_Interaction',
+        'Extracurricular_PreviousScores_Interaction',
+        'Performance Index (1)',
+        'Performance Index (2)'
+    ]
     
-    return df
+    # Create DF for Model
+    # We create with unique names first to satisfy any strict constructors, then rename
+    df_model = pd.DataFrame([data_values])
+    df_model.columns = model_column_names
+    
+    # Create DF for Display
+    df_display = pd.DataFrame([data_values], columns=display_column_names)
+    
+    return df_model, df_display
 
-input_df = generate_features()
+input_df_model, input_df_display = generate_features()
 
 # Interactive preview card
 st.markdown(
@@ -137,7 +141,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.dataframe(input_df, use_container_width=True)
+st.dataframe(input_df_display, use_container_width=True)
 
 # -------------------------------------------------------------
 # PREDICTION BUTTON
@@ -146,7 +150,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 if st.button("🎯 Predict Now", use_container_width=True):
     try:
-        pred = model.predict(input_df)[0]
+        pred = model.predict(input_df_model)[0]
 
         if pred == 1:
             st.markdown(
