@@ -155,8 +155,8 @@ if st.button("🎯 Predict Now", use_container_width=True):
         if pred == 1:
             st.markdown(
                 """
-                <div class='main-card' style='background:#e0ffe6;'>
-                    <h2 style='text-align:center;'>🎉 The student is likely to participate in <b>extracurricular activities</b>!</h2>
+                <div class='main-card' style='background:#e0ffe6; color: #000000;'>
+                    <h2 style='text-align:center; color: #000000;'>🎉 The student is likely to participate in <b>extracurricular activities</b>!</h2>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -164,8 +164,8 @@ if st.button("🎯 Predict Now", use_container_width=True):
         else:
             st.markdown(
                 """
-                <div class='main-card' style='background:#ffe6e6;'>
-                    <h2 style='text-align:center;'>🚫 The student is <b>not likely</b> to participate in extracurricular activities.</h2>
+                <div class='main-card' style='background:#ffe6e6; color: #000000;'>
+                    <h2 style='text-align:center; color: #000000;'>🚫 The student is <b>not likely</b> to participate in extracurricular activities.</h2>
                 </div>
                 """,
                 unsafe_allow_html=True,
