@@ -22,7 +22,7 @@ except Exception as e:
     st.stop()
 
 # --- Load dataset to infer fields (uses your uploaded CSV) ---
-DATA_PATH = "/mnt/data/StudentPerformance.csv"
+DATA_PATH = "/data/StudentPerformance.csv"
 try:
     df = pd.read_csv(DATA_PATH)
 except Exception as e:
