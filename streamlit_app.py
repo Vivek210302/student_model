@@ -32,7 +32,7 @@ st.markdown(
 st.markdown(
     """
     <div style='text-align:center; padding:25px' class='main-card'>
-        <h1 style='font-size:45px;'>🎒✨ Extracurricular Activity Predictor ✨🎒</h1>
+        <h1 style='font-size:45px;'>🎒✨ Extracurricular Activity Predictor (v2.0) ✨🎒</h1>
         <p style='font-size:18px;'>A beautiful, modern, AI-powered app that predicts a student's extracurricular activity involvement.</p>
     </div>
     """,
